@@ -359,11 +359,12 @@ function connecter(salon, role, surMessage, surEtat, depart){
     const essayer = i => {
       if (i >= ordre.length){ if (!fait){ fait = true; rejeter(new Error('aucun courtier joignable')); } return; }
       const idx = ordre[i];
-      const client = mqtt.connect(BROKERS[idx], { clientId:id, clean:true, reconnectPeriod:2500, connectTimeout:8000 });
+      const client = mqtt.connect(BROKERS[idx], { clientId:id, clean:true, reconnectPeriod:2500,
+                                                  connectTimeout:8000, keepalive:20 });
       const minuteur = setTimeout(() => { if (!fait){ clearTimeout(minuteur); try{client.end(true);}catch(e){} essayer(i+1); } }, 10000);
       client.on('connect', () => {
         if (fait) return; fait = true; clearTimeout(minuteur); net.broker = idx;
-        client.subscribe('blindtest/' + salon + '/#', err => {
+        client.subscribe('blindtest/' + salon + '/#', { qos:1 }, err => {
           if (err) return rejeter(err);
           if (surEtat) surEtat(true);
           resoudre(client);
@@ -383,7 +384,9 @@ function connecter(salon, role, surMessage, surEtat, depart){
   });
 }
 const publier = (suffixe, obj, options) => {
-  if (net.client) net.client.publish('blindtest/' + net.salon + '/' + suffixe, JSON.stringify(obj), options || {});
+  if (!net.client) return;
+  const opts = Object.assign({ qos:1 }, options || {});   // QoS 1 : le courtier accuse reception et reessaie
+  net.client.publish('blindtest/' + net.salon + '/' + suffixe, JSON.stringify(obj), opts);
 };
 
 /* ================= HOTE ================= */
