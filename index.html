@@ -129,6 +129,7 @@
   <div id="entete">
     <div class="minuteur" id="minuteur">30:00</div>
     <div class="puce" id="compteur">0 morceau</div>
+    <div class="puce" id="main-qui">main libre</div>
     <div class="puce" id="etat-lien">connexion…</div>
   </div>
   <div class="carte" id="bloc-invitation">
@@ -189,9 +190,10 @@
     <div id="transcription"></div>
   </div>
   <div class="carte">
-    <h2 class="sec" style="margin-top:0">Sans reconnaissance vocale ?</h2>
-    <p class="petit" style="margin-top:0">Sur iPhone, le navigateur ne sait pas écouter. Appuie ici : le maître du jeu validera à la main.</p>
-    <button class="go go2" id="b-signaler">Je pense avoir trouvé</button>
+    <h2 class="sec" style="margin-top:0">Comment ça marche</h2>
+    <p class="petit" style="margin-top:0">Le morceau tourne : appuie sur le buzzer. La musique se met en pause, tu as la main, et l'autre équipe ne peut plus répondre. Dis le titre et l'artiste.</p>
+    <p class="petit" style="margin-top:0">Si c'est faux, la musique repart, ton buzzer est bloqué 3 secondes et l'adversaire peut répondre. Sur iPhone, le navigateur ne sait pas écouter : le maître du jeu valide ta réponse à la main.</p>
+    <button class="go go2" id="b-signaler">Prévenir le maître du jeu</button>
   </div>
   <button class="lien" id="quitter" style="background:none">Quitter la partie</button>
 </section>
@@ -391,7 +393,8 @@ const publier = (suffixe, obj, options) => {
 
 /* ================= HOTE ================= */
 const H = { file:[], i:0, courant:null, restant:0, minuteur:null, joue:false, url:null,
-            equipes:new Map(), vus:new Map(), phase:'attente', joues:0 };
+            equipes:new Map(), vus:new Map(), phase:'attente', joues:0,
+            buzz:null, penalites:new Map(), delaiBuzz:null };
 
 const publierEtat = () => publier('etat', etatHote(), { retain:true });
 const majLien = ok => { $('#etat-lien').textContent = ok ? 'en ligne' : 'reconnexion…'; };
@@ -420,7 +423,9 @@ $('#creer').onclick = async () => {
 };
 
 function etatHote(){
-  return { t:'etat', phase:H.phase, index:H.joues, restant:H.restant,
+  const pen = {};
+  H.penalites.forEach((fin, nom) => { if (fin > Date.now()) pen[nom] = fin; });
+  return { t:'etat', phase:H.phase, index:H.joues, restant:H.restant, buzz:H.buzz, penalites:pen,
            scores:[...H.equipes.values()].map(e => ({nom:e.nom, pts:e.pts})),
            niveau: H.courant ? H.courant.niveau : niveau };
 }
@@ -446,16 +451,55 @@ function majEquipes(){
     b.appendChild(d);
   });
   $('#nb-joueurs').textContent = H.equipes.size + ' équipe' + (H.equipes.size > 1 ? 's' : '');
+  const mq = $('#main-qui');
+  mq.textContent = H.buzz ? H.buzz + ' a la main' : 'main libre';
+  mq.style.borderColor = H.buzz ? 'var(--accent)' : 'var(--bord)';
+  mq.style.color = H.buzz ? 'var(--accent)' : 'var(--gris)';
 }
 const enLigne = nom => (Date.now() - (H.vus.get(nom) || 0)) < 30000;
+
+function buzzerAutorise(nom){
+  if (H.phase !== 'ecoute') return false;
+  if (H.buzz) return false;                       // quelqu'un a deja la main
+  const fin = H.penalites.get(nom);
+  return !(fin && fin > Date.now());              // penalite en cours
+}
+
+function reprendreMusique(){
+  if (!H.url) return;
+  const a = $('#audio');
+  a.play().then(() => { H.joue = true; $('#play').textContent = '❚❚'; $('#etat-audio').textContent = 'Extrait en cours…'; })
+          .catch(() => { H.joue = false; $('#play').textContent = '▶'; $('#etat-audio').textContent = 'Touche ▶ pour reprendre la musique'; });
+}
 
 function surMessageHote(suffixe, d){
   if (suffixe === 'hello' && d.equipe){
     if (!H.equipes.has(d.equipe)) H.equipes.set(d.equipe, { nom:d.equipe, pts:0 });
     H.vus.set(d.equipe, Date.now()); majEquipes();
     publierEtat();
+  } else if (suffixe === 'buzz' && d.equipe){
+    if (!H.equipes.has(d.equipe)) H.equipes.set(d.equipe, { nom:d.equipe, pts:0 });
+    H.vus.set(d.equipe, Date.now());
+    if (!buzzerAutorise(d.equipe)){
+      publier('refus', { equipe:d.equipe, raison: H.buzz ? 'trop tard' : 'bloque' });
+      majEquipes(); publierEtat();
+      return;
+    }
+    H.buzz = d.equipe;
+    $('#audio').pause(); H.joue = false; $('#play').textContent = '▶';
+    $('#etat-audio').textContent = d.equipe + ' a la main — musique en pause';
+    clearTimeout(H.delaiBuzz);
+    H.delaiBuzz = setTimeout(() => {                 // silence : on rend la main et la musique repart
+      if (H.buzz === d.equipe){
+        H.buzz = null; reprendreMusique();
+        $('#etat-audio').textContent = 'Pas de réponse de ' + d.equipe + ' — musique reprise';
+        majEquipes(); publierEtat();
+      }
+    }, 9000);
+    majEquipes(); publierEtat();
   } else if (suffixe === 'rep' && d.equipe){
     H.vus.set(d.equipe, Date.now());
+    if (H.buzz && H.buzz !== d.equipe) return;    // pas la main : on ignore
     valider(d.equipe, d.texte || '');
   } else if (suffixe === 'ping' && d.equipe){
     if (!H.equipes.has(d.equipe)) H.equipes.set(d.equipe, { nom:d.equipe, pts:0 });
@@ -463,12 +507,22 @@ function surMessageHote(suffixe, d){
   }
 }
 function valider(nom, texte){
+  clearTimeout(H.delaiBuzz);
   if (!H.courant){ publier('res', { equipe:nom, pts:0, motif:'aucun morceau' }); return; }
   const r = evaluer(texte, H.courant);
   const eq = H.equipes.get(nom);
-  if (eq && r.pts > 0){ eq.pts += r.pts; majEquipes(); }
+  if (eq && r.pts > 0) eq.pts += r.pts;
   publier('res', { equipe:nom, pts:r.pts, titreOk:r.titreOk, artisteOk:r.artisteOk,
                    titre:H.courant.titre, artiste:H.courant.artiste, texte });
+  if (r.pts > 0){
+    reveler();                       // trouve : la reponse s'affiche, les buzzers se bloquent
+  } else {
+    H.penalites.set(nom, Date.now() + 3000);   // erreur : 3 s de penalite pour cette equipe
+    H.buzz = null;
+    reprendreMusique();                        // et la musique repart, l'adversaire peut buzzer
+    $('#etat-audio').textContent = 'Reponse fausse — musique reprise, ' + nom + ' bloque 3 s';
+  }
+  majEquipes();
   publierEtat();
 }
 
@@ -476,6 +530,7 @@ async function chargerMorceau(){
   if (H.i >= H.file.length){ H.file = melanger(H.file); H.i = 0; }
   H.courant = H.file[H.i];
   H.phase = 'ecoute';
+  H.buzz = null; H.penalites.clear(); clearTimeout(H.delaiBuzz);   // nouveau morceau : main libre, penalites remises a zero
   $('#revel').classList.remove('on');
   $('#etat-audio').textContent = 'Chargement de l\'extrait…';
   $('#play').textContent = '▶'; $('#barre i').style.width = '0%';
@@ -507,16 +562,22 @@ $('#audio').addEventListener('timeupdate', () => {
 $('#audio').addEventListener('ended', () => {
   H.joue = false; $('#play').textContent = '▶'; $('#etat-audio').textContent = 'Extrait terminé — les réponses arrivent';
 });
-$('#b-reveler').onclick = () => {
+function reveler(){
   if (!H.courant) return;
   H.phase = 'revele';
+  H.buzz = null;
   $('#r-titre').textContent = H.courant.titre;
   $('#r-artiste').textContent = H.courant.artiste;
   $('#r-annee').textContent = (H.courant.annee ? H.courant.annee + ' · ' : '') + H.courant.theme + ' · ' + H.courant.niveau;
   $('#revel').classList.add('on');
   publier('revel', { titre:H.courant.titre, artiste:H.courant.artiste, annee:H.courant.annee });
+  publierEtat();
+}
+$('#b-reveler').onclick = reveler;
+$('#b-rejouer').onclick = () => {
+  H.buzz = null; clearTimeout(H.delaiBuzz);      // on rend la main et on repart du debut de l'extrait
+  $('#audio').currentTime = 0; lire(); majEquipes(); publierEtat();
 };
-$('#b-rejouer').onclick = () => { $('#audio').currentTime = 0; lire(); };
 $('#b-passer').onclick = suivant;
 $('#b-suivant').onclick = suivant;
 function suivant(){
@@ -544,7 +605,8 @@ function terminer(){
 }
 
 /* ================= JOUEUR ================= */
-const J = { nom:null, pts:0, salon:null, reco:null, ecoute:false };
+const J = { nom:null, pts:0, salon:null, reco:null, ecoute:false,
+            phase:'attente', buzz:null, main:false, penaliteFin:0 };
 $('#m-rejoindre').onclick = () => afficher('ec-rejoindre');
 $('#retour-accueil').onclick = () => afficher('ec-accueil');
 $('#b-rejoindre').onclick = async () => {
@@ -564,7 +626,7 @@ $('#b-rejoindre').onclick = async () => {
     J.nom = nom; J.salon = code; J.pts = 0;
     $('#j-nom').textContent = nom; $('#j-score').textContent = '0 pt';
     afficher('ec-joueur');
-    majMicro();
+    majBuzzer();
     publier('hello', { equipe:nom });
     setInterval(() => publier('ping', { equipe:nom }), 10000);
   }catch(e){ err.textContent = 'Impossible de rejoindre. Vérifie le code et ta connexion.'; }
@@ -572,18 +634,27 @@ $('#b-rejoindre').onclick = async () => {
 };
 function surMessageJoueur(suffixe, d){
   if (suffixe === 'etat'){
-    $('#j-phase').textContent = d.phase === 'ecoute' ? 'Écoute et réponds' : (d.phase === 'revele' ? 'Réponse affichée' : 'En attente');
+    J.phase = d.phase; J.buzz = d.buzz || null;
+    J.main = (d.buzz === J.nom);
+    J.penaliteFin = (d.penalites && d.penalites[J.nom]) || 0;
+    if (!J.main && J.ecoute){ try{ J.reco.stop(); }catch(e){} }   // la main est passee ailleurs
+    $('#j-phase').textContent = d.phase === 'ecoute' ? 'Le morceau tourne — buzzez !'
+                              : (d.phase === 'revele' ? 'Réponse affichée' : 'En attente');
     $('#j-phase').className = 'badge' + (d.phase === 'ecoute' ? ' on' : '');
     const moi = (d.scores||[]).find(s => s.nom === J.nom);
     if (moi){ J.pts = moi.pts; $('#j-score').textContent = (moi.pts % 1 ? moi.pts.toFixed(1) : moi.pts) + ' pt'; }
-    majMicro();
+    majBuzzer();
+  } else if (suffixe === 'refus' && d.equipe === J.nom){
+    $('#verdict').textContent = d.raison === 'trop tard' ? 'Trop tard — une autre équipe a la main' : 'Bloqué quelques secondes';
+    if (J.ecoute){ try{ J.reco.stop(); }catch(e){} }
+    majBuzzer();
   } else if (suffixe === 'revel'){
     $('#j-consigne').textContent = 'Réponse : ' + d.titre + ' — ' + d.artiste;
   } else if (suffixe === 'res' && d.equipe === J.nom){
     let v;
     if (d.pts >= 1) v = '✅ Titre et artiste — 1 point !';
     else if (d.pts === 0.5) v = (d.titreOk ? '✅ Titre trouvé' : '✅ Artiste trouvé') + ' — ½ point';
-    else v = '❌ Pas reconnu, on retente ?';
+    else v = '❌ Raté — bloqué 3 secondes, la musique repart';
     $('#verdict').textContent = v;
     $('#transcription').textContent = d.texte ? '« ' + d.texte + ' »' : '';
   } else if (suffixe === 'fin'){
@@ -596,20 +667,47 @@ function surMessageJoueur(suffixe, d){
   }
 }
 const RECO_DISPO = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-function majMicro(){
+
+function majBuzzer(){
   const b = $('#micro');
-  b.disabled = !RECO_DISPO;
-  if (!RECO_DISPO){ b.textContent = '🚫'; $('#j-consigne').textContent = 'Ce navigateur ne sait pas écouter : utilise le bouton de validation manuelle en dessous.'; }
+  const reste = Math.ceil((J.penaliteFin - Date.now()) / 1000);
+  if (J.main){
+    b.disabled = false;
+    b.classList.toggle('ecoute', J.ecoute);
+    b.textContent = J.ecoute ? '🔴' : '🎤';
+    $('#j-consigne').textContent = RECO_DISPO
+      ? (J.ecoute ? 'Je t\'écoute — dis le titre et l\'artiste' : 'Tu as la main — appuie pour parler')
+      : 'Tu as la main : le maître du jeu valide à la main';
+    return;
+  }
+  b.classList.remove('ecoute');
+  if (reste > 0){ b.disabled = true; b.textContent = '⛔'; $('#j-consigne').textContent = 'Bloqué encore ' + reste + ' s'; return; }
+  if (J.buzz && J.buzz !== J.nom){ b.disabled = true; b.textContent = '⏳'; $('#j-consigne').textContent = J.buzz + ' a la main'; return; }
+  if (J.phase !== 'ecoute'){ b.disabled = true; b.textContent = '⏸'; $('#j-consigne').textContent = 'Attends le prochain morceau'; return; }
+  b.disabled = false; b.textContent = RECO_DISPO ? '🔔' : '🙋';
+  $('#j-consigne').textContent = RECO_DISPO ? 'Appuie pour buzzer, puis dis le titre et l\'artiste'
+                                            : 'Appuie pour buzzer : le maître du jeu validera à la main';
 }
+setInterval(() => { if ($('#ec-joueur').classList.contains('on')) majBuzzer(); }, 500);
+
 $('#micro').onclick = () => {
   if (J.ecoute){ try{ J.reco.stop(); }catch(e){} return; }
+  if (J.main){ demarrerEcoute(); return; }        // deja la main : on relance l'ecoute
+  if ($('#micro').disabled) return;
+  publier('buzz', { equipe:J.nom });
+  $('#verdict').textContent = '';
+  if (RECO_DISPO) demarrerEcoute();               // le tap est un geste utilisateur : le micro part aussitot
+  else $('#verdict').textContent = 'Buzzer envoyé — le maître du jeu valide';
+};
+
+function demarrerEcoute(){
   const Cls = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Cls) return;
   const r = new Cls();
   r.lang = 'fr-FR'; r.interimResults = false; r.maxAlternatives = 3; r.continuous = false;
   J.reco = r; J.ecoute = true;
   $('#micro').classList.add('ecoute');
-  $('#verdict').textContent = ''; $('#transcription').textContent = 'Je t\'écoute…';
+  $('#transcription').textContent = 'Je t\'écoute…';
   r.onresult = ev => {
     let dit = '';
     for (const alt of ev.results[0]) dit += ' ' + alt.transcript;
@@ -618,9 +716,9 @@ $('#micro').onclick = () => {
     publier('rep', { equipe:J.nom, texte:dit });
   };
   r.onerror = ev => { $('#transcription').textContent = 'Micro indisponible (' + ev.error + ')'; };
-  r.onend = () => { J.ecoute = false; $('#micro').classList.remove('ecoute'); };
+  r.onend = () => { J.ecoute = false; $('#micro').classList.remove('ecoute'); majBuzzer(); };
   try{ r.start(); }catch(e){ $('#transcription').textContent = 'Impossible de démarrer le micro.'; }
-};
+}
 $('#b-signaler').onclick = () => { publier('rep', { equipe:J.nom, texte:'' }); $('#verdict').textContent = 'Signalé au maître du jeu'; };
 $('#quitter').onclick = () => { if (net.client) net.client.end(true); afficher('ec-accueil'); };
 
