@@ -548,6 +548,7 @@ function valider(nom, texte){
     H.buzz = null;
     reprendreMusique();                        // et la musique repart, l'adversaire peut buzzer
     $('#etat-audio').textContent = 'Reponse fausse — musique reprise, ' + nom + ' bloque 3 s';
+    setTimeout(publierEtat, 3100);             // previent les telephones que le buzzer se debloque
   }
   majEquipes();
   publierEtat();
