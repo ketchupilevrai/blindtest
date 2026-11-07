@@ -344,7 +344,7 @@ const BROKERS = [
   'wss://test.mosquitto.org:8081/mqtt'
 ];
 const LETTRES = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-let net = { client:null, salon:null, role:null, broker:0 };
+let net = { client:null, salon:null, role:null, broker:0, params:null, etaitConnecte:null, perduDepuis:0, veille:null };
 
 function nouveauCode(){
   let c = '';
@@ -358,6 +358,7 @@ function connecter(salon, role, surMessage, surEtat, depart){
     const ordre = [depart||0].concat([0,1,2]).filter((v,i,a) => a.indexOf(v) === i);
     let fait = false;
     net.salon = salon; net.role = role;
+    net.params = { salon, role, surMessage, surEtat, depart };
     const essayer = i => {
       if (i >= ordre.length){ if (!fait){ fait = true; rejeter(new Error('aucun courtier joignable')); } return; }
       const idx = ordre[i];
@@ -365,11 +366,14 @@ function connecter(salon, role, surMessage, surEtat, depart){
                                                   connectTimeout:8000, keepalive:20 });
       const minuteur = setTimeout(() => { if (!fait){ clearTimeout(minuteur); try{client.end(true);}catch(e){} essayer(i+1); } }, 10000);
       client.on('connect', () => {
-        if (fait) return; fait = true; clearTimeout(minuteur); net.broker = idx;
+        const premier = !fait;
+        if (premier){ fait = true; clearTimeout(minuteur); }
+        net.broker = idx;
+        // on (re)abonne a chaque connexion : apres une coupure, le courtier a oublie le client
         client.subscribe('blindtest/' + salon + '/#', { qos:1 }, err => {
-          if (err) return rejeter(err);
+          if (err){ if (premier) rejeter(err); return; }
           if (surEtat) surEtat(true);
-          resoudre(client);
+          if (premier) resoudre(client);
         });
       });
       client.on('reconnect', () => { if (fait && surEtat) surEtat(false); });
@@ -383,7 +387,30 @@ function connecter(salon, role, surMessage, surEtat, depart){
       net.client = client;
     };
     essayer(0);
+    if (!net.veille) net.veille = setInterval(veiller, 8000);
   });
+}
+
+/* Surveillance : signale l'etat reel du lien et relance la connexion si elle reste morte. */
+function veiller(){
+  if (!net.client) return;
+  const ok = net.client.connected;
+  if (ok !== net.etaitConnecte){
+    net.etaitConnecte = ok;
+    if (net.params && net.params.surEtat) net.params.surEtat(ok);
+  }
+  if (ok){ net.perduDepuis = 0; return; }
+  net.perduDepuis = net.perduDepuis || Date.now();
+  if (Date.now() - net.perduDepuis > 15000){
+    net.perduDepuis = 0;
+    const p = net.params;
+    try { net.client.end(true); } catch(e){}
+    if (!p) return;
+    connecter(p.salon, p.role, p.surMessage, p.surEtat, net.broker).then(() => {
+      if (p.role === 'hote') publierEtat();
+      else if (typeof J !== 'undefined' && J.nom) publier('hello', { equipe: J.nom });
+    }).catch(() => {});
+  }
 }
 const publier = (suffixe, obj, options) => {
   if (!net.client) return;
@@ -417,7 +444,7 @@ $('#creer').onclick = async () => {
     const url = location.origin + location.pathname + '?salon=' + salon + '&b=' + net.broker;
     $('#url-salon').textContent = url;
     $('#qr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=0&data=' + encodeURIComponent(url);
-    if (duree > 0){ clearInterval(H.minuteur); H.minuteur = setInterval(() => { H.restant--; majMinuteur(); publierEtat(); if (H.restant <= 0) terminer(); }, 1000); }
+    if (duree > 0){ clearInterval(H.minuteur); H.minuteur = setInterval(() => { H.restant--; majMinuteur(); if (H.restant <= 0) terminer(); }, 1000); }
   }catch(e){ majLien(false); $('#url-salon').textContent = 'pas de réseau — recharge la page'; }
   chargerMorceau();
 };
