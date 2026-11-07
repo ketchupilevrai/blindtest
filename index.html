@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Blind Test — Crazy Phone</title>
+<meta name="theme-color" content="#0D0D0D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#0D0D0D; --carte:#161616; --carte2:#1e1e1e; --bord:#2a2a2a;
+    --txt:#f2f2f2; --gris:#9a9a9a; --accent:#39FF14; --accent2:#2bd10f;
+    --rouge:#ff4d4d; --or:#ffc23c;
+    --r:18px; --r2:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overscroll-behavior:none}
+  button{font-family:inherit;color:inherit;border:0;background:none;cursor:pointer}
+  .ecran{display:none;min-height:100vh;padding:18px;max-width:900px;margin:0 auto}
+  .ecran.on{display:block}
+  h1{font-size:clamp(26px,7vw,40px);margin:6px 0 2px;letter-spacing:-.02em}
+  h2.sec{font-size:13px;text-transform:uppercase;letter-spacing:.14em;color:var(--gris);font-weight:600;margin:22px 0 10px}
+  .sous{color:var(--gris);font-size:15px;margin-bottom:20px}
+  .grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .choix{background:var(--carte);border:1px solid var(--bord);border-radius:var(--r2);
+    padding:14px 12px;text-align:left;font-size:15px;line-height:1.25;transition:.15s;min-height:58px}
+  .choix small{display:block;color:var(--gris);font-size:12px;margin-top:3px}
+  .choix[aria-pressed="true"]{background:rgba(57,255,20,.10);border-color:var(--accent);color:#fff}
+  .choix[aria-pressed="true"] small{color:var(--accent)}
+  .rangee{display:flex;gap:10px;flex-wrap:wrap}
+  .rangee .choix{flex:1;min-width:120px;text-align:center}
+  .go{display:block;width:100%;background:var(--accent);color:#04120a;font-weight:800;
+    font-size:19px;padding:20px;border-radius:var(--r);margin-top:8px}
+  .go:active{background:var(--accent2)}
+  .go:disabled{background:#2a2a2a;color:#666}
+  .go2{background:var(--carte);border:1px solid var(--bord);color:var(--txt);font-weight:700}
+  .carte{background:var(--carte);border:1px solid var(--bord);border-radius:var(--r);padding:18px;margin-bottom:14px}
+  #entete{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .minuteur{font-variant-numeric:tabular-nums;font-size:clamp(22px,6vw,30px);font-weight:700}
+  .minuteur.bas{color:var(--or)} .minuteur.fin{color:var(--rouge)}
+  .puce{background:var(--carte);border:1px solid var(--bord);border-radius:999px;padding:7px 13px;font-size:13px;color:var(--gris)}
+  #scenes{background:var(--carte);border:1px solid var(--bord);border-radius:24px;padding:26px 18px;text-align:center;position:relative;overflow:hidden}
+  #scenes:before{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 0%,rgba(57,255,20,.10),transparent 60%);pointer-events:none}
+  #play,#s-play{width:clamp(96px,26vw,132px);height:clamp(96px,26vw,132px);border-radius:50%;background:var(--accent);
+    color:#04120a;font-size:40px;display:flex;align-items:center;justify-content:center;margin:6px auto 16px;position:relative}
+  #play:active,#s-play:active{transform:scale(.96)}
+  #barre{height:6px;background:#2b2b2b;border-radius:99px;overflow:hidden;margin:0 auto;max-width:420px}
+  #barre i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s linear}
+  .petit{color:var(--gris);font-size:13px;margin-top:10px;min-height:18px}
+  #revel{display:none;margin-top:18px} #revel.on{display:block}
+  #revel .t{font-size:clamp(20px,5.4vw,30px);font-weight:800;line-height:1.2}
+  #revel .a{font-size:clamp(15px,4vw,20px);color:var(--accent);margin-top:5px}
+  #revel .y{color:var(--gris);font-size:14px;margin-top:3px}
+  #actions{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+  #actions button{background:var(--carte2);border:1px solid var(--bord);border-radius:var(--r2);padding:15px 10px;font-size:15px;font-weight:600}
+  #actions button.plein{grid-column:1/-1;background:var(--accent);color:#04120a}
+  #equipes{display:grid;gap:10px;margin-top:16px}
+  .eq{background:var(--carte);border:1px solid var(--bord);border-radius:var(--r2);padding:12px 14px;display:flex;align-items:center;gap:10px}
+  .eq .nom{flex:1;font-weight:600;font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .eq .sc{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
+  .eq .moins{width:34px;height:34px;border-radius:10px;background:#222;color:var(--gris);font-size:18px}
+  .eq .plus{width:44px;height:44px;border-radius:12px;background:var(--accent);color:#04120a;font-size:24px;font-weight:800}
+  .eq.enligne .nom:after{content:" ●";color:var(--accent);font-size:11px}
+  .eq .half{width:44px;height:44px;border-radius:12px;background:#2a3a22;color:var(--accent);font-size:15px;font-weight:800}
+  #bloc-code{display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;text-align:center}
+  #qr{width:150px;height:150px;border-radius:12px;background:#fff;padding:6px}
+  .code{font-size:clamp(38px,12vw,58px);font-weight:900;letter-spacing:.16em;color:var(--accent);font-variant-numeric:tabular-nums}
+  .url{color:var(--gris);font-size:13px;word-break:break-all;margin-top:6px}
+  #micro{width:clamp(140px,42vw,190px);height:clamp(140px,42vw,190px);border-radius:50%;background:var(--accent);
+    color:#04120a;font-size:56px;display:flex;align-items:center;justify-content:center;margin:22px auto;position:relative}
+  #micro.ecoute{background:var(--rouge);animation:pulse 1.1s infinite}
+  @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+  #micro:disabled{background:#2a2a2a;color:#666}
+  #verdict{font-size:clamp(18px,5vw,26px);font-weight:800;min-height:34px;margin-top:8px}
+  #transcription{color:var(--gris);font-size:14px;font-style:italic;min-height:20px}
+  .badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:12px;background:var(--carte2);color:var(--gris);border:1px solid var(--bord)}
+  .badge.on{background:rgba(57,255,20,.12);color:var(--accent);border-color:var(--accent)}
+  .ligne{background:var(--carte);border:1px solid var(--bord);border-radius:var(--r2);padding:16px;display:flex;align-items:center;gap:14px;font-size:17px}
+  .ligne .g{font-size:22px;font-weight:800;color:var(--accent);min-width:34px}
+  .ligne.gagnant{border-color:var(--accent);background:rgba(57,255,20,.08)}
+  #podium{display:grid;gap:10px;margin:18px 0}
+  .stats{color:var(--gris);font-size:14px;line-height:1.7}
+  .lien{color:var(--gris);font-size:13px;text-decoration:underline;margin-top:26px;display:inline-block}
+  input[type=text]{width:100%;background:var(--carte2);border:1px solid var(--bord);border-radius:var(--r2);
+    color:var(--txt);font-size:20px;padding:16px;font-family:inherit;text-align:center;letter-spacing:.1em}
+  input[type=text]:focus{outline:2px solid var(--accent)}
+  @media(min-width:700px){ #actions{grid-template-columns:repeat(4,1fr)} #actions button.plein{grid-column:auto} #equipes{grid-template-columns:repeat(2,1fr)} }
+</style>
+</head>
+<body>
+
+<section class="ecran on" id="ec-accueil">
+  <h1>Blind Test</h1>
+  <p class="sous">Extraits de 30 secondes. Chacun répond depuis son téléphone, à la voix.</p>
+  <button class="go" id="m-hote">Créer une partie</button>
+  <button class="go go2" id="m-rejoindre">Rejoindre une partie</button>
+  <button class="go go2" id="m-solo">Jouer seul</button>
+</section>
+
+<section class="ecran" id="ec-config">
+  <h1>Nouvelle partie</h1>
+  <p class="sous">Tu es le maître du jeu. La musique sort de ton appareil, les autres répondent sur le leur.</p>
+  <h2 class="sec">Thèmes</h2>
+  <div class="grille" id="liste-themes"></div>
+  <h2 class="sec">Niveau</h2>
+  <div class="rangee" id="liste-niveaux">
+    <button class="choix" data-niv="facile" aria-pressed="false">Facile<small>titre seul suffit</small></button>
+    <button class="choix" data-niv="moyen" aria-pressed="true">Moyen<small>titre = ½, titre + artiste = 1</small></button>
+    <button class="choix" data-niv="difficile" aria-pressed="false">Difficile<small>titre + artiste obligatoires</small></button>
+    <button class="choix" data-niv="mixte" aria-pressed="false">Mixte<small>tous niveaux</small></button>
+  </div>
+  <h2 class="sec">Durée</h2>
+  <div class="rangee" id="liste-durees">
+    <button class="choix" data-duree="1800" aria-pressed="true">30 min</button>
+    <button class="choix" data-duree="3600" aria-pressed="false">1 heure</button>
+    <button class="choix" data-duree="0" aria-pressed="false">Sans limite</button>
+  </div>
+  <button class="go" id="creer" disabled>Choisis au moins un thème</button>
+  <p class="stats" id="resume-pool" style="margin-top:12px"></p>
+</section>
+
+<section class="ecran" id="ec-hote">
+  <div id="entete">
+    <div class="minuteur" id="minuteur">30:00</div>
+    <div class="puce" id="compteur">0 morceau</div>
+    <div class="puce" id="etat-lien">connexion…</div>
+  </div>
+  <div class="carte" id="bloc-invitation">
+    <div id="bloc-code">
+      <div>
+        <div class="code" id="code-salon">----</div>
+        <div class="url" id="url-salon"></div>
+      </div>
+      <img id="qr" alt="QR code pour rejoindre">
+    </div>
+    <p class="petit" style="text-align:center">Scannez le QR ou tapez le code sur le site. <span id="nb-joueurs">0 équipe</span></p>
+  </div>
+  <div id="scenes">
+    <button id="play" aria-label="Lire l'extrait">▶</button>
+    <div id="barre"><i></i></div>
+    <div class="petit" id="etat-audio">Appuie pour lancer l'extrait</div>
+    <div id="revel">
+      <div class="t" id="r-titre"></div>
+      <div class="a" id="r-artiste"></div>
+      <div class="y" id="r-annee"></div>
+    </div>
+  </div>
+  <div id="actions">
+    <button id="b-reveler">Révéler</button>
+    <button id="b-rejouer">Réécouter</button>
+    <button id="b-passer">Passer</button>
+    <button class="plein" id="b-suivant">Morceau suivant →</button>
+  </div>
+  <h2 class="sec">Équipes — valide à la main si besoin</h2>
+  <div id="equipes"></div>
+  <button class="lien" id="terminer" style="background:none">Terminer la partie</button>
+</section>
+
+<section class="ecran" id="ec-rejoindre">
+  <h1>Rejoindre</h1>
+  <p class="sous">Demande le code à la personne qui organise.</p>
+  <div class="carte">
+    <h2 class="sec" style="margin-top:0">Code de la partie</h2>
+    <input type="text" id="in-code" maxlength="4" placeholder="ABCD" autocapitalize="characters" autocomplete="off">
+    <h2 class="sec">Ton nom ou celui de ton équipe</h2>
+    <input type="text" id="in-nom" maxlength="18" placeholder="Les Gaulois" autocomplete="off" style="letter-spacing:0;font-size:17px">
+    <button class="go" id="b-rejoindre" style="margin-top:16px">Entrer dans la partie</button>
+    <p class="stats" id="erreur-rejoindre" style="color:var(--rouge)"></p>
+  </div>
+  <button class="lien" id="retour-accueil" style="background:none">← Retour</button>
+</section>
+
+<section class="ecran" id="ec-joueur">
+  <div id="entete">
+    <div class="puce" id="j-nom">—</div>
+    <div class="puce" id="j-score">0 pt</div>
+  </div>
+  <div class="carte" style="text-align:center">
+    <div class="badge" id="j-phase">En attente du maître du jeu</div>
+    <div class="petit" id="j-consigne">Écoute l'extrait, puis appuie sur le micro et dis le titre et l'artiste.</div>
+    <button id="micro" disabled>🎤</button>
+    <div id="verdict"></div>
+    <div id="transcription"></div>
+  </div>
+  <div class="carte">
+    <h2 class="sec" style="margin-top:0">Sans reconnaissance vocale ?</h2>
+    <p class="petit" style="margin-top:0">Sur iPhone, le navigateur ne sait pas écouter. Appuie ici : le maître du jeu validera à la main.</p>
+    <button class="go go2" id="b-signaler">Je pense avoir trouvé</button>
+  </div>
+  <button class="lien" id="quitter" style="background:none">Quitter la partie</button>
+</section>
+
+<section class="ecran" id="ec-solo">
+  <div id="entete">
+    <div class="minuteur" id="s-minuteur">30:00</div>
+    <div class="puce" id="s-compteur">0 morceau</div>
+  </div>
+  <div id="scenes">
+    <button id="s-play">▶</button>
+    <div id="barre"><i></i></div>
+    <div class="petit" id="s-etat">Appuie pour lancer l'extrait</div>
+    <div id="revel">
+      <div class="t" id="s-titre"></div>
+      <div class="a" id="s-artiste"></div>
+      <div class="y" id="s-annee"></div>
+    </div>
+    <div id="indice"></div>
+  </div>
+  <div id="actions">
+    <button id="s-indice">Indice</button>
+    <button id="s-reveler">Révéler</button>
+    <button id="s-rejouer">Réécouter</button>
+    <button id="s-passer">Passer</button>
+    <button class="plein" id="s-suivant">Morceau suivant →</button>
+  </div>
+  <div id="equipes"></div>
+  <button class="lien" id="s-terminer" style="background:none">Arrêter</button>
+</section>
+
+<section class="ecran" id="ec-fin">
+  <h1>Partie terminée</h1>
+  <p class="sous" id="fin-sous"></p>
+  <div id="podium"></div>
+  <button class="go" id="rejouer">Nouvelle partie</button>
+  <p class="stats" id="fin-stats" style="margin-top:16px"></p>
+</section>
+
+<audio id="audio" preload="auto"></audio>
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script>
+const DONNEES = {"Annees 80":[{"titre":"Sweet Dreams (Are Made of This)","artiste":"Eurythmics","annee":"1983","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/b8/b9/e0/b8b9e080-a908-d3aa-addd-e6d4e06f211e/mzaf_15705804610601659545.plus.aac.p.m4a"},{"titre":"Never Gonna Give You Up (2022 Remaster)","artiste":"Rick Astley","annee":"1987","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f4/df/d0/f4dfd0bf-357f-558c-07b3-7b59400fff62/mzaf_11202855818963280395.plus.aac.p.m4a"},{"titre":"Take On Me","artiste":"a-ha","annee":"1985","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f2/03/4f/f2034f41-707f-7111-bc63-e5d3cf7f2240/mzaf_17215043934336702540.plus.aac.p.m4a"},{"titre":"Forever Young","artiste":"Alphaville","annee":"1984","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/da/f4/b2/daf4b26a-83da-1e34-bbba-546e253798c7/mzaf_14148949332076372597.plus.aac.p.m4a"},{"titre":"Total Eclipse of the Heart","artiste":"Bonnie Tyler","annee":"1983","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/47/3d/35/473d35b3-b379-12d9-8fbf-88299e3cad7e/mzaf_5191559564499798673.plus.aac.p.m4a"},{"titre":"Girls Just Want to Have Fun","artiste":"Cyndi Lauper","annee":"1983","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/72/c1/d8/72c1d8b3-ea91-d192-f0f3-19635b8e23b9/mzaf_7659275070797279015.plus.aac.p.m4a"},{"titre":"Money For Nothing (Single Edit / Remastered 2022)","artiste":"Dire Straits","annee":"1988","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/69/00/49/6900491f-3304-305c-2c93-4f0af509b382/mzaf_10382975979045234546.plus.aac.p.m4a"},{"titre":"Sweet Child O' Mine","artiste":"Guns N' Roses","annee":"1987","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/0d/cb/f3/0dcbf381-7cbf-78b8-7f74-d5789adf65a1/mzaf_17081805577020235844.plus.aac.p.m4a"},{"titre":"Like a Prayer","artiste":"Madonna","annee":"1989","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/9f/a7/12/9fa712d6-1783-d96e-366a-39255a1043d0/mzaf_13459590149591299421.plus.aac.p.m4a"},{"titre":"Billie Jean","artiste":"Michael Jackson","annee":"1982","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/dc/bc/8a/dcbc8a3e-4ce1-c00d-cc02-eda2212053c7/mzaf_8347559338388601510.plus.aac.p.m4a"},{"titre":"Beat It","artiste":"Michael Jackson","annee":"1982","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/88/cd/46/88cd46bd-dba7-1dc2-a63b-e8c111ac4fc3/mzaf_4042555053237612653.plus.aac.p.m4a"},{"titre":"Purple Rain","artiste":"Prince & The Revolution","annee":"1984","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/76/17/ba/7617bae9-013f-3e37-cd89-41998f6ed902/mzaf_15080256781020707908.plus.aac.p.m4a"},{"titre":"Everybody Wants to Rule the World","artiste":"Tears for Fears","annee":"1985","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ed/23/1f/ed231f7c-78cb-3b4d-f312-fc6b7ec09063/mzaf_14579022326895349191.plus.aac.p.m4a"},{"titre":"Every Breath You Take","artiste":"The Police","annee":"1983","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/33/55/ce/3355ceb6-679b-dede-bc9e-20240c173541/mzaf_2582695436913795899.plus.aac.p.m4a"},{"titre":"Africa","artiste":"Toto","annee":"1982","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/bb/3d/07/bb3d07a3-b3af-2c99-5c9f-eb72796268c2/mzaf_11871467005041854011.plus.aac.p.m4a"},{"titre":"With or Without You","artiste":"U2","annee":"1987","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/b6/1f/0b/b61f0be5-94e7-0487-6507-38f9c9c71ab7/mzaf_4732149650781342076.plus.aac.p.m4a"},{"titre":"Personal Jesus","artiste":"Depeche Mode","annee":"1989","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/a5/da/1e/a5da1e54-0d7c-0622-98cd-39938f69bf7b/mzaf_10238680678427184128.plus.aac.p.m4a"},{"titre":"The Final Countdown","artiste":"Europe","annee":"1986","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d3/5b/d9/d35bd9a3-d105-95d8-ba29-0f5c6b8e764b/mzaf_7609183394807520180.plus.aac.p.m4a"},{"titre":"In the Air Tonight","artiste":"Phil Collins","annee":"1981","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/87/dc/e5/87dce590-ff0c-3194-dfc1-1bc9b3aa1fe5/mzaf_1137975488766871124.plus.aac.p.m4a"},{"titre":"Don't You Forget About Me (Live)","artiste":"Simple Minds","annee":"1987","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c7/67/e7/c767e749-abea-67bd-2e0e-722ae9eaf83b/mzaf_13590154606804204014.plus.aac.p.m4a"},{"titre":"Eye of the Tiger","artiste":"Survivor","annee":"1982","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/88/98/17/889817e8-2454-4696-dd3e-8bdef3f5ed7e/mzaf_18139591310479474983.plus.aac.p.m4a"},{"titre":"The Best","artiste":"Tina Turner","annee":"1989","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d7/29/28/d7292843-4fa2-d51d-1fa6-457c945d681e/mzaf_10620094978141232841.plus.aac.p.m4a"},{"titre":"Jump","artiste":"Van Halen","annee":"2004","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/3c/fe/a2/3cfea2be-6104-94d0-8c99-25d2bd104e3a/mzaf_7881296634339886194.plus.aac.p.m4a"},{"titre":"Wake Me Up Before You Go-Go","artiste":"Wham!","annee":"1984","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/59/d0/df/59d0df1f-b9b0-c1f0-d27e-ad59ee9fe1fa/mzaf_15629855503092199047.plus.aac.p.m4a"},{"titre":"I Wanna Dance with Somebody (Who Loves Me)","artiste":"Whitney Houston","annee":"1987","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/7b/67/fd/7b67fd07-6a7a-0362-135c-878ac5799f2c/mzaf_11309521725869189721.plus.aac.p.m4a"}],"Annees 90":[{"titre":"Macarena","artiste":"Los del Río","annee":"1995","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/87/de/8d/87de8d4c-5420-73f9-4ea4-86b8db743958/mzaf_5563419343591496736.plus.aac.p.m4a"},{"titre":"Teardrop","artiste":"Massive Attack","annee":"1998","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a3/a6/91/a3a691b0-8e49-399d-2585-ddcd6694c9f2/mzaf_16325826545413166648.plus.aac.p.m4a"},{"titre":"...Baby One More Time","artiste":"Britney Spears","annee":"1998","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/49/2d/12/492d127a-ae83-a0cd-97b6-10d34d4a56f5/mzaf_694336938043858459.plus.aac.p.m4a"},{"titre":"Gangsta's Paradise (feat. L.V.)","artiste":"Coolio","annee":"1995","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/db/4b/4f/db4b4ff6-5fb3-fb50-7dbb-ea4c45ffdab5/mzaf_6510633620048230208.plus.aac.p.m4a"},{"titre":"Say My Name","artiste":"Destiny's Child","annee":"1999","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/04/b5/e9/04b5e9fa-35a0-73ea-e79f-2ceac7a19b88/mzaf_15538400809119445402.plus.aac.p.m4a"},{"titre":"Smells Like Teen Spirit (Boombox Rehearsals)","artiste":"Nirvana","annee":"1991","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/f6/e0/6c/f6e06c1c-024d-c71d-3c8e-7188d31fdd4d/mzaf_10971970410165592452.plus.aac.p.m4a"},{"titre":"Don't Speak","artiste":"No Doubt","annee":"1995","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/87/52/52/8752529c-0125-c053-6c2c-73d1646adff6/mzaf_5525794060908135243.plus.aac.p.m4a"},{"titre":"Wonderwall","artiste":"Oasis","annee":"1995","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ab/16/93/ab16933c-6203-3db9-9da9-513ff1c8496d/mzaf_16993612140334549994.plus.aac.p.m4a"},{"titre":"Losing My Religion","artiste":"R.E.M.","annee":"1991","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/4f/14/45/4f1445c7-c1e3-ef07-878c-f016839cef6b/mzaf_15501181977794875858.plus.aac.p.m4a"},{"titre":"Creep (Acoustic)","artiste":"Radiohead","annee":"1992","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/1f/18/e2/1f18e22b-264e-88f8-ee89-c196fa9abd7a/mzaf_14184372154331980897.plus.aac.p.m4a"},{"titre":"Under the Bridge","artiste":"Red Hot Chili Peppers","annee":"1991","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/1f/fd/0e/1ffd0eac-69a5-ad0a-c0ea-0f5b819df56f/mzaf_3070457270209131862.plus.aac.p.m4a"},{"titre":"Wannabe (Radio Edit)","artiste":"Spice Girls","annee":"1996","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/93/bf/08/93bf08b8-cc15-2ddb-9a49-2c221707b139/mzaf_6707128577346358435.plus.aac.p.m4a"},{"titre":"No Scrubs","artiste":"TLC","annee":"1999","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c9/64/38/c964385e-f18a-fd99-638c-76d4f9bdd4e2/mzaf_4744709234124158764.plus.aac.p.m4a"},{"titre":"Zombie (2025 Remastered)","artiste":"The Cranberries","annee":"1994","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/35/bb/65/35bb6532-1abe-59e4-9ced-8bee2742ea24/mzaf_15102830936602294569.plus.aac.p.m4a"},{"titre":"All That She Wants","artiste":"Ace of Base","annee":"1992","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/df/cb/dd/dfcbdda6-36f1-ae26-d865-2d144d97f730/mzaf_6455862464087792624.plus.aac.p.m4a"},{"titre":"Ironic","artiste":"Alanis Morissette","annee":"1995","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/05/99/bb/0599bb8c-2dc2-14f6-213f-1ee69c72e4ed/mzaf_17860950106664762758.plus.aac.p.m4a"},{"titre":"Barbie Girl","artiste":"Aqua","annee":"1997","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/3d/b7/7d/3db77df0-d9a3-b60e-0714-41fd79b9ebff/mzaf_3692738463507322199.plus.aac.p.m4a"},{"titre":"Everybody (Backstreet's Back) [Radio Edit]","artiste":"Backstreet Boys","annee":"1997","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/c0/00/48/c00048f4-f05c-c666-83b0-7513f995a79b/mzaf_8744552893122742411.plus.aac.p.m4a"},{"titre":"Song 2 (2012 Remaster)","artiste":"Blur","annee":"1997","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/0d/7b/06/0d7b068e-914f-b01a-ef1e-fd21e9b106c6/mzaf_2441215755969695380.plus.aac.p.m4a"},{"titre":"Believe","artiste":"Cher","annee":"1998","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/9c/52/d8/9c52d83d-242e-abc4-68fc-273eeb8f0358/mzaf_10714034642820090237.plus.aac.p.m4a"},{"titre":"My Heart Will Go On (Love Theme from \"Titanic\")","artiste":"Céline Dion","annee":"1997","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/f4/e9/69/f4e9695a-ab90-1946-abe0-77e8fa96ccfc/mzaf_10170763914731960323.plus.aac.p.m4a"},{"titre":"Scatman (Ski-Ba-Bop-Ba-Dop-Bop) [Basic-Radio]","artiste":"Scatman John","annee":"1994","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d4/ab/c4/d4abc442-73f1-bf69-e3b0-348781b5a763/mzaf_10386820774794193.plus.aac.p.m4a"},{"titre":"Kiss from a Rose","artiste":"Seal","annee":"1994","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/5b/32/60/5b32607f-683f-4298-1c4c-3f2086508444/mzaf_572188254823172236.plus.aac.p.m4a"},{"titre":"Rhythm Is a Dancer","artiste":"Snap!","annee":"1992","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/73/e2/71/73e271ad-fcb7-9916-e908-2fb603ac5fd6/mzaf_10512374362151303524.plus.aac.p.m4a"},{"titre":"I Will Always Love You","artiste":"Whitney Houston","annee":"1992","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/03/d2/1a/03d21aca-c69e-09af-03ef-118004e68ab5/mzaf_17408932698913708736.plus.aac.p.m4a"}],"Annees 2000":[{"titre":"Love Generation (feat. Gary Pine)","artiste":"Bob Sinclar","annee":"2005","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/7b/4e/68/7b4e6897-096f-3e8d-da1d-caddb50d16a8/mzaf_16400465586474728413.plus.aac.p.m4a"},{"titre":"Clocks","artiste":"Coldplay","annee":"2002","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/eb/07/86/eb07861b-015f-d0e1-418f-9436a1f78af5/mzaf_9321333057187916970.plus.aac.p.m4a"},{"titre":"Hot in Herre","artiste":"Nelly","annee":"2002","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/e0/1f/f3/e01ff398-5b46-58d8-eced-e4bf715dca33/mzaf_552008469913377827.plus.aac.p.m4a"},{"titre":"Whenever, Wherever","artiste":"Shakira","annee":"2001","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/56/8b/a5/568ba575-4b67-00fc-aaee-53488d49547d/mzaf_13992039227019046827.plus.aac.p.m4a"},{"titre":"In da Club","artiste":"50 Cent","annee":"2003","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/6e/6a/04/6e6a0436-3bd4-1f71-02df-6bcffe76e636/mzaf_3291234595362168142.plus.aac.p.m4a"},{"titre":"Crazy in Love (feat. JAŸ-Z)","artiste":"Beyoncé","annee":"2003","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/7a/7f/b3/7a7fb397-c707-f7a6-93be-1db3cd1c7fcb/mzaf_10719026518601275807.plus.aac.p.m4a"},{"titre":"Toxic","artiste":"Britney Spears","annee":"2003","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ae/c4/7f/aec47f56-842d-49b4-558b-7a7523fd6728/mzaf_6693111381462300599.plus.aac.p.m4a"},{"titre":"Lose Yourself","artiste":"Eminem","annee":"2002","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/13/5a/61/135a6154-8ca2-0523-1fa2-f4ac0ea9e1e7/mzaf_13242749689945681184.plus.aac.p.m4a"},{"titre":"Feel Good Inc","artiste":"Gorillaz","annee":"2005","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/81/59/e0/8159e01e-fa32-c607-f76c-f3fd4f95192a/mzaf_15903337756715110889.plus.aac.p.m4a"},{"titre":"Bring Me to Life","artiste":"Halocene","annee":"2021","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/af/ec/1d/afec1df0-c931-bb10-89dd-f676ec2a5c09/mzaf_9476059688191147329.plus.aac.p.m4a"},{"titre":"In the End","artiste":"LINKIN PARK","annee":"2000","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/0c/ad/c0/0cadc05e-846a-b090-c7e9-6017df2e0ab5/mzaf_1775739195432502696.plus.aac.p.m4a"},{"titre":"Poker Face (Piano & Voice Version) [Live]","artiste":"Lady Gaga","annee":"2009","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/0d/59/63/0d5963d2-53fa-49ed-e071-3ae94b7741b0/mzaf_14015742864021737007.plus.aac.p.m4a"},{"titre":"Maneater","artiste":"Nelly Furtado","annee":"2006","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/18/88/be/1888be4d-5b00-45ee-fe73-1a536519f30c/mzaf_9774704503937118596.plus.aac.p.m4a"},{"titre":"Umbrella (feat. JAŸ-Z)","artiste":"Rihanna","annee":"2007","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/7b/45/22/7b452241-882c-409b-3a9b-23306b14286a/mzaf_8588243939716013218.plus.aac.p.m4a"},{"titre":"I Gotta Feeling (Originally Performed By Black Eyed Peas) [Karaoke]","artiste":"Singer's Edge Karaoke","annee":"2014","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview118/v4/02/02/17/02021782-6655-d86f-8cd4-431c59c54e1f/mzaf_3173878224007414423.plus.aac.p.m4a"},{"titre":"Mr. Brightside","artiste":"The Killers","annee":"2003","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/b2/1a/e8/b21ae8eb-9d11-2aaf-cc48-0e8ca210c485/mzaf_18420207698003017244.plus.aac.p.m4a"},{"titre":"Yeah! (feat. Lil Jon & Ludacris)","artiste":"USHER","annee":"2004","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/94/52/3c/94523c88-f5f9-16f4-dbd7-f284ca168048/mzaf_7184891920196479048.plus.aac.p.m4a"},{"titre":"Rehab","artiste":"Amy Winehouse","annee":"2006","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d4/6e/c3/d46ec306-7dae-3f52-02c9-86b7c84a8f33/mzaf_9679547428483928372.plus.aac.p.m4a"},{"titre":"Complicated","artiste":"Avril Lavigne","annee":"2002","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d5/82/55/d58255cd-4bd1-c339-1584-591e9d1305ee/mzaf_14546367220838781682.plus.aac.p.m4a"},{"titre":"One More Time","artiste":"Daft Punk","annee":"2000","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/5d/93/d8/5d93d83f-ad1e-da4d-1d79-9937bdff24ec/mzaf_14396932211949300852.plus.aac.p.m4a"},{"titre":"Cry Me a River","artiste":"Justin Timberlake","annee":"2002","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f9/2f/13/f92f132d-8336-b7af-cbd6-aa62a78d0fbc/mzaf_13014445371283907307.plus.aac.p.m4a"},{"titre":"Can't Get You Out of My Head","artiste":"Kylie Minogue","annee":"2001","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/61/4d/37/614d37a5-4ee8-48aa-c302-3550a2abf0e0/mzaf_2068714512784676202.plus.aac.p.m4a"},{"titre":"Lady (Hear Me Tonight) [Remix]","artiste":"Modjo, Sparrow & Barbossa, Koshi & Daymaan","annee":"2025","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/37/27/70/37277075-a344-591c-d723-2d46187a07f0/mzaf_9896258482403628873.plus.aac.p.m4a"},{"titre":"Hey Ya!","artiste":"OutKast","annee":"2003","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/7b/90/59/7b9059ba-a8f2-2540-5bbb-d63a178bd8ce/mzaf_1797078659976130902.plus.aac.p.m4a"},{"titre":"Get Busy","artiste":"Sean Paul","annee":"2002","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/65/b0/f3/65b0f3d9-9882-b43c-bb57-463b0849bf83/mzaf_10506361393973474378.plus.aac.p.m4a"}],"Rap francais":[{"titre":"Nirvana (Version alternative)","artiste":"Doc Gynéco","annee":"1996","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/46/b2/3d/46b23d95-42b4-05a6-08c3-ff349720e5e6/mzaf_11511161265728311563.plus.aac.p.m4a"},{"titre":"Écrire","artiste":"Grand Corps Malade & Charles Aznavour","annee":"2015","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/d7/a5/46/d7a5465c-9a26-6177-e581-88ec2adc7f18/mzaf_7310337792829734995.plus.aac.p.m4a"},{"titre":"Bouge de là","artiste":"MC Solaar","annee":"1998","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/33/2f/47/332f4713-98a7-02c3-34bd-34bbec3387a9/mzaf_17211035258545979718.plus.aac.p.m4a"},{"titre":"Dommage","artiste":"Bigflo & Oli","annee":"2017","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/be/e3/ff/bee3ff7c-7215-ac92-4841-54e34e34dce9/mzaf_2426797672003624763.plus.aac.p.m4a"},{"titre":"La boulette (Génération nan nan)","artiste":"Diam's","annee":"2005","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/78/26/c6/7826c67e-6029-68fa-87d2-06627883df8f/mzaf_11565277544236867714.plus.aac.p.m4a"},{"titre":"Bella","artiste":"GIMS","annee":"2013","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/da/65/36/da653671-307d-2a5a-9a40-5fc39b06884c/mzaf_13624804469544949041.plus.aac.p.m4a"},{"titre":"Basique","artiste":"Orelsan","annee":"2017","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/af/25/93/af2593fa-f4ca-73d5-bc0a-b36c36719497/mzaf_5677389276593843455.plus.aac.p.m4a"},{"titre":"JEFE (REMIX)","artiste":"SAYS","annee":"2022","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview112/v4/5f/b3/5f/5fb35f60-c386-aabd-2575-31d1a1431f69/mzaf_14272073697100938227.plus.aac.p.m4a"},{"titre":"Désolé","artiste":"Sexion d'Assaut","annee":"2010","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/97/b3/19/97b31917-ba9d-5e24-a40a-83eb5e29c18e/mzaf_1678494734284508971.plus.aac.p.m4a"},{"titre":"Gravé dans la roche","artiste":"Sniper","annee":"2003","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/72/f7/64/72f7640f-506b-b676-6435-e3191bf7fb91/mzaf_4036127592713109542.plus.aac.p.m4a"},{"titre":"Cosmo","artiste":"Soprano","annee":"2014","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/e9/b1/aa/e9b1aad0-3688-5e11-c094-cc73c8b342b1/mzaf_6490791722313648351.plus.aac.p.m4a"},{"titre":"Djadja","artiste":"Aya Nakamura","annee":"2018","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/7b/f8/73/7bf87378-e84b-471a-3729-8d1d0546ee9a/mzaf_16949123873725847595.plus.aac.p.m4a"},{"titre":"Ma Benz","artiste":"Brigitte","annee":"2010","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f8/a5/bc/f8a5bc67-e528-de48-855b-feacc935d48e/mzaf_8872798557536251294.plus.aac.p.m4a"},{"titre":"Je danse le Mia","artiste":"IAM","annee":"1993","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/29/cd/8b/29cd8b30-bcd5-c685-01be-7829890d83fc/mzaf_15131298560571345340.plus.aac.p.m4a"},{"titre":"Tchikita","artiste":"Jul","annee":"2016","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/4b/0c/51/4b0c51d4-cf27-d8ce-5b02-d16e8fa74920/mzaf_12233480002067793911.plus.aac.p.m4a"},{"titre":"Otto","artiste":"Kjetil Schjander-Larsen","annee":"2014","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/Music4/v4/c9/f2/44/c9f244e8-c3b8-74a3-589b-a82f0faed2e2/mzaf_7373630749998890027.plus.aac.p.m4a"},{"titre":"Trop beau (instrumentale)","artiste":"Lomepal","annee":"2019","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/07/7f/c9/077fc959-e558-ec76-0246-513f4d787660/mzaf_7315746400372387923.plus.aac.p.m4a"},{"titre":"Désaccordé (Vald Réadaptation)","artiste":"Mazy","annee":"2024","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/b0/31/bb/b031bb2a-0f62-9bd3-c5f3-07a196ca6460/mzaf_10770388609698189885.plus.aac.p.m4a"},{"titre":"La kiffance","artiste":"Naps","annee":"2021","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/7e/65/40/7e654044-3f9d-8e08-06d1-78fa078bfa66/mzaf_11910698629187079539.plus.aac.p.m4a"},{"titre":"FREEZE RAËL (PIANO VARIATIONS)","artiste":"Nassir-Kélian","annee":"2021","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/ba/ce/36/bace3657-7353-10a8-c72a-c173d885b955/mzaf_13888901641610812520.plus.aac.p.m4a"},{"titre":"Qui Est L'Exemple ?","artiste":"Rohff","annee":"2001","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/85/89/82/858982fe-c1fa-69af-3276-d26d64a1d834/mzaf_14844303531723810119.plus.aac.p.m4a"}],"Rock legendes":[{"titre":"Another Brick In the Wall","artiste":"Big One","annee":"2006","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/e0/db/08/e0db08f2-088f-8b06-a143-de535ba7b707/mzaf_17467536070105670342.plus.aac.p.m4a"},{"titre":"Stairway to Heaven","artiste":"Led Zeppelin","annee":"1971","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/a2/e9/c8/a2e9c8fb-e282-9e9d-b5f9-d44fadb07e1e/mzaf_13939222705716798166.plus.aac.p.m4a"},{"titre":"Riders on the Storm","artiste":"The Doors","annee":"1971","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ba/1d/59/ba1d598c-e369-bb90-178d-de4be5ec642b/mzaf_14953698594657028707.plus.aac.p.m4a"},{"titre":"Paint It Black","artiste":"The Rolling Stones","annee":"1966","niveau":"difficile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/82/a9/36/82a936f6-cc74-9df6-bf75-19c1483b8e5b/mzaf_1315194188082064730.plus.aac.p.m4a"},{"titre":"Back In Black","artiste":"AC/DC","annee":"1980","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/08/2e/ac/082eac8c-1d0e-f72f-7b37-b8e037ff1579/mzaf_7587164327744022409.plus.aac.p.m4a"},{"titre":"Livin' On a Prayer","artiste":"Bon Jovi","annee":"1986","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/75/15/30/75153020-b7c4-7958-8907-4aa1b965dc24/mzaf_2377504467597068152.plus.aac.p.m4a"},{"titre":"November Rain","artiste":"Guns N' Roses","annee":"1991","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/67/6b/0c/676b0cc6-2f6e-555a-b4f1-a514ab21adb4/mzaf_10772491023997849447.plus.aac.p.m4a"},{"titre":"Nothing Else Matters","artiste":"Metallica","annee":"1991","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/54/fa/db/54fadbee-8974-62b6-4c75-4616174011c1/mzaf_14998279393651999262.plus.aac.p.m4a"},{"titre":"Come As You Are","artiste":"Nirvana","annee":"1991","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/88/55/17/88551793-f12c-c809-2657-bea5256c7aa0/mzaf_4166033993768096448.plus.aac.p.m4a"},{"titre":"Bohemian Rhapsody (Live in Budapest)","artiste":"Queen","annee":"2026","niveau":"facile","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/01/fa/77/01fa771c-3a0b-1308-72ff-44ca1dd93005/mzaf_17670560250462795194.plus.aac.p.m4a"},{"titre":"Smoke on the Water (Remastered)","artiste":"Deep Purple","annee":"1972","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/08/3f/1b/083f1b23-decd-8fe6-2bad-0437d1c5d959/mzaf_9991776491763640927.plus.aac.p.m4a"},{"titre":"All Along the Watchtower","artiste":"Jimi Hendrix","annee":"1968","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/04/1a/cb/041acb6d-1e35-72f4-7c1c-685862b0eb68/mzaf_1357691911560037603.plus.aac.p.m4a"},{"titre":"Come Together","artiste":"The Beatles","annee":"1969","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/26/65/7c/26657c20-9fec-56d6-55ff-61a76996f19b/mzaf_6128091568231335556.plus.aac.p.m4a"},{"titre":"Baba O'Riley","artiste":"The Who","annee":"1971","niveau":"moyen","preview":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/4a/35/1d/4a351dda-bd63-b7be-bcfd-b5a63b033e05/mzaf_9841159092656846881.plus.aac.p.m4a"}]};
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+window.addEventListener('error', e => { window.__err = (window.__err || '') + e.message + ' | '; });
+
+/* ================= outils ================= */
+const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/\(.*?\)|\[.*?\]/g, ' ').replace(/[^a-z0-9 ]+/g, ' ').trim();
+const melanger = a => { const t = a.slice(); for (let i = t.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [t[i],t[j]]=[t[j],t[i]]; } return t; };
+const mmss = s => s <= 0 ? '00:00' : String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+const afficher = id => { $$('.ecran').forEach(e => e.classList.remove('on')); $('#'+id).classList.add('on'); window.scrollTo(0,0); };
+
+/* ================= donnees ================= */
+const THEMES = Object.keys(DONNEES);
+let themesChoisis = new Set([THEMES[0]]);
+let niveau = 'moyen', duree = 1800;
+
+function construireThemes(){
+  const b = $('#liste-themes'); b.innerHTML = '';
+  THEMES.forEach(t => {
+    const el = document.createElement('button');
+    el.className = 'choix'; el.dataset.theme = t;
+    el.setAttribute('aria-pressed', themesChoisis.has(t) ? 'true' : 'false');
+    el.innerHTML = t + '<small>' + DONNEES[t].length + ' morceaux</small>';
+    el.onclick = () => {
+      themesChoisis.has(t) ? themesChoisis.delete(t) : themesChoisis.add(t);
+      el.setAttribute('aria-pressed', themesChoisis.has(t) ? 'true' : 'false');
+      majResume();
+    };
+    b.appendChild(el);
+  });
+}
+function pool(){
+  let out = [];
+  themesChoisis.forEach(t => (DONNEES[t]||[]).forEach(c => out.push(Object.assign({theme:t}, c))));
+  if (niveau !== 'mixte') out = out.filter(c => c.niveau === niveau);
+  return out;
+}
+function majResume(){
+  const p = pool(), b = $('#creer');
+  if (!themesChoisis.size){ b.disabled = true; b.textContent = 'Choisis au moins un thème'; }
+  else if (p.length < 5){ b.disabled = true; b.textContent = 'Pas assez de morceaux (' + p.length + ')'; }
+  else { b.disabled = false; b.textContent = 'Créer la partie — ' + p.length + ' morceaux'; }
+  $('#resume-pool').textContent = themesChoisis.size ? p.length + ' morceaux dans la pioche.' : '';
+}
+$$('#liste-niveaux .choix').forEach(b => b.onclick = () => {
+  niveau = b.dataset.niv;
+  $$('#liste-niveaux .choix').forEach(x => x.setAttribute('aria-pressed', x===b?'true':'false'));
+  majResume();
+});
+$$('#liste-durees .choix').forEach(b => b.onclick = () => {
+  duree = parseInt(b.dataset.duree,10);
+  $$('#liste-durees .choix').forEach(x => x.setAttribute('aria-pressed', x===b?'true':'false'));
+});
+
+/* ================= extraits iTunes ================= */
+const CACHE = JSON.parse(localStorage.getItem('bt-previews') || '{}');
+const sauverCache = () => { try { localStorage.setItem('bt-previews', JSON.stringify(CACHE)); } catch(e){} };
+const cleC = c => norm(c.artiste) + '|' + norm(c.titre);
+async function extrait(c){
+  const k = cleC(c);
+  if (CACHE[k]) return CACHE[k];
+  if (c.preview){ CACHE[k] = c.preview; sauverCache(); return c.preview; }
+  try{
+    const r = await fetch('https://itunes.apple.com/search?term=' + encodeURIComponent(c.artiste+' '+c.titre) + '&entity=song&limit=5&country=FR');
+    const d = await r.json();
+    const nt = norm(c.titre);
+    const hit = (d.results||[]).find(x => { const n = norm(x.trackName); return n && (n===nt || n.includes(nt) || nt.includes(n)); });
+    if (hit && hit.previewUrl){ CACHE[k] = hit.previewUrl; sauverCache(); return hit.previewUrl; }
+  }catch(e){}
+  return null;
+}
+
+/* ================= evaluation d'une reponse ================= */
+function contientTitre(dit, titre){
+  if (!titre) return false;
+  const mots = titre.split(' ').filter(m => m.length > 2);
+  if (!mots.length) return dit.includes(titre);
+  return dit.includes(titre) || mots.filter(m => dit.includes(m)).length / mots.length >= 0.6;
+}
+function contientArtiste(dit, artiste){
+  if (!artiste) return false;
+  const mots = artiste.replace(/^(the|les|le|la|los)\s+/,'').split(' ').filter(m => m.length > 2);
+  if (!mots.length) return dit.includes(artiste);
+  return mots.some(m => dit.includes(m));
+}
+function evaluer(dit, chanson){
+  const t = norm(dit);
+  const titreOk = contientTitre(t, norm(chanson.titre));
+  const artisteOk = contientArtiste(t, norm(chanson.artiste));
+  const niv = chanson.niveau;
+  let pts = 0;
+  if (niv === 'facile') pts = titreOk ? 1 : 0;
+  else if (niv === 'difficile') pts = (titreOk && artisteOk) ? 1 : 0;
+  else pts = (titreOk && artisteOk) ? 1 : ((titreOk || artisteOk) ? 0.5 : 0);
+  return { titreOk, artisteOk, pts };
+}
+
+/* ================= temps reel ================= */
+const BROKER = 'wss://broker.emqx.io:8084/mqtt';
+const LETTRES = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+let net = { client:null, salon:null, role:null };
+
+function nouveauCode(){
+  let c = '';
+  for (let i = 0; i < 4; i++) c += LETTRES[Math.floor(Math.random()*LETTRES.length)];
+  return c;
+}
+function connecter(salon, role, surMessage){
+  return new Promise((resoudre, rejeter) => {
+    if (typeof mqtt === 'undefined') return rejeter(new Error('librairie temps reel indisponible'));
+    const client = mqtt.connect(BROKER, { clientId: 'bt_' + Math.random().toString(16).slice(2,10), clean: true, reconnectPeriod: 2000 });
+    let fait = false;
+    const minuteur = setTimeout(() => { if (!fait){ fait = true; try{client.end(true);}catch(e){} rejeter(new Error('pas de connexion')); } }, 15000);
+    client.on('connect', () => {
+      if (fait) return; fait = true; clearTimeout(minuteur);
+      client.subscribe('blindtest/' + salon + '/#', err => err ? rejeter(err) : resoudre(client));
+    });
+    client.on('error', () => { if (!fait){ fait = true; clearTimeout(minuteur); rejeter(new Error('erreur reseau')); } });
+    client.on('message', (topic, msg) => {
+      let d = null;
+      try { d = JSON.parse(msg.toString()); } catch(e){ return; }
+      surMessage(topic.split('/').pop(), d);
+    });
+    net.client = client; net.salon = salon; net.role = role;
+  });
+}
+const publier = (suffixe, obj) => { if (net.client) net.client.publish('blindtest/' + net.salon + '/' + suffixe, JSON.stringify(obj)); };
+
+/* ================= HOTE ================= */
+const H = { file:[], i:0, courant:null, restant:0, minuteur:null, joue:false, url:null,
+            equipes:new Map(), vus:new Map(), phase:'attente', joues:0 };
+
+$('#m-hote').onclick = () => { construireThemes(); majResume(); afficher('ec-config'); };
+$('#creer').onclick = async () => {
+  const salon = nouveauCode();
+  H.file = melanger(pool()); H.i = 0; H.joues = 0; H.equipes.clear(); H.vus.clear(); H.restant = duree;
+  $('#code-salon').textContent = salon;
+  const url = location.origin + location.pathname + '?salon=' + salon;
+  $('#url-salon').textContent = url;
+  $('#qr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=0&data=' + encodeURIComponent(url);
+  $('#etat-lien').textContent = 'connexion…';
+  afficher('ec-hote');
+  majMinuteur(); majEquipes();
+  try{
+    await connecter(salon, 'hote', surMessageHote);
+    $('#etat-lien').textContent = 'en ligne';
+    publier('etat', etatHote());
+    if (duree > 0){ clearInterval(H.minuteur); H.minuteur = setInterval(() => { H.restant--; majMinuteur(); publier('etat', etatHote()); if (H.restant <= 0) terminer(); }, 1000); }
+  }catch(e){ $('#etat-lien').textContent = 'hors ligne — recharge la page'; }
+  chargerMorceau();
+};
+
+function etatHote(){
+  return { t:'etat', phase:H.phase, index:H.joues, restant:H.restant,
+           scores:[...H.equipes.values()].map(e => ({nom:e.nom, pts:e.pts})),
+           niveau: H.courant ? H.courant.niveau : niveau };
+}
+function majMinuteur(){
+  const m = $('#minuteur');
+  if (duree === 0){ m.textContent = '∞'; m.className = 'minuteur'; return; }
+  m.textContent = mmss(H.restant);
+  m.className = 'minuteur' + (H.restant <= 60 ? ' fin' : (H.restant <= 300 ? ' bas' : ''));
+}
+function majEquipes(){
+  const b = $('#equipes'); b.innerHTML = '';
+  [...H.equipes.values()].forEach(eq => {
+    const d = document.createElement('div');
+    d.className = 'eq' + (enLigne(eq.nom) ? ' enligne' : '');
+    d.innerHTML = '<span class="nom"></span><button class="moins">−</button><button class="half">+½</button><button class="plus">+1</button><span class="sc"></span>';
+    d.querySelector('.nom').textContent = eq.nom;
+    const sc = d.querySelector('.sc');
+    const maj = () => { sc.textContent = eq.pts % 1 ? eq.pts.toFixed(1) : eq.pts; publier('etat', etatHote()); };
+    d.querySelector('.plus').onclick = () => { eq.pts += 1; maj(); };
+    d.querySelector('.half').onclick = () => { eq.pts += 0.5; maj(); };
+    d.querySelector('.moins').onclick = () => { eq.pts = Math.max(0, eq.pts - 0.5); maj(); };
+    maj();
+    b.appendChild(d);
+  });
+  $('#nb-joueurs').textContent = H.equipes.size + ' équipe' + (H.equipes.size > 1 ? 's' : '');
+}
+const enLigne = nom => (Date.now() - (H.vus.get(nom) || 0)) < 30000;
+
+function surMessageHote(suffixe, d){
+  if (suffixe === 'hello' && d.equipe){
+    if (!H.equipes.has(d.equipe)) H.equipes.set(d.equipe, { nom:d.equipe, pts:0 });
+    H.vus.set(d.equipe, Date.now()); majEquipes();
+    publier('etat', etatHote());
+  } else if (suffixe === 'rep' && d.equipe){
+    H.vus.set(d.equipe, Date.now());
+    valider(d.equipe, d.texte || '');
+  } else if (suffixe === 'ping' && d.equipe){
+    if (!H.equipes.has(d.equipe)) H.equipes.set(d.equipe, { nom:d.equipe, pts:0 });
+    H.vus.set(d.equipe, Date.now()); majEquipes();
+  }
+}
+function valider(nom, texte){
+  if (!H.courant){ publier('res', { equipe:nom, pts:0, motif:'aucun morceau' }); return; }
+  const r = evaluer(texte, H.courant);
+  const eq = H.equipes.get(nom);
+  if (eq && r.pts > 0){ eq.pts += r.pts; majEquipes(); }
+  publier('res', { equipe:nom, pts:r.pts, titreOk:r.titreOk, artisteOk:r.artisteOk,
+                   titre:H.courant.titre, artiste:H.courant.artiste, texte });
+  publier('etat', etatHote());
+}
+
+async function chargerMorceau(){
+  if (H.i >= H.file.length){ H.file = melanger(H.file); H.i = 0; }
+  H.courant = H.file[H.i];
+  H.phase = 'ecoute';
+  $('#revel').classList.remove('on');
+  $('#etat-audio').textContent = 'Chargement de l\'extrait…';
+  $('#play').textContent = '▶'; $('#barre i').style.width = '0%';
+  H.url = await extrait(H.courant);
+  $('#etat-audio').textContent = H.url ? 'Appuie pour lancer l\'extrait' : 'Extrait indisponible — passe au suivant';
+  publier('etat', etatHote());
+  const suiv = H.file[(H.i+1) % H.file.length];
+  if (suiv && !CACHE[cleC(suiv)] && !suiv.preview) extrait(suiv);
+}
+function lire(){
+  const a = $('#audio');
+  if (!H.url) return;
+  if (a.src !== H.url) a.src = H.url;
+  a.currentTime = 0;
+  a.play().then(() => { H.joue = true; $('#play').textContent = '❚❚'; $('#etat-audio').textContent = 'Extrait en cours…'; })
+   .catch(() => { $('#etat-audio').textContent = 'Lecture refusée — touche encore'; });
+}
+$('#play').onclick = () => {
+  const a = $('#audio');
+  if (!H.url) return;
+  if (H.joue){ a.pause(); H.joue = false; $('#play').textContent = '▶'; }
+  else if (a.currentTime > 0 && !a.ended){ a.play(); H.joue = true; $('#play').textContent = '❚❚'; }
+  else lire();
+};
+$('#audio').addEventListener('timeupdate', () => {
+  const a = $('#audio');
+  if (a.duration && $('#ec-hote').classList.contains('on')) $('#barre i').style.width = (a.currentTime/a.duration*100) + '%';
+});
+$('#audio').addEventListener('ended', () => {
+  H.joue = false; $('#play').textContent = '▶'; $('#etat-audio').textContent = 'Extrait terminé — les réponses arrivent';
+});
+$('#b-reveler').onclick = () => {
+  if (!H.courant) return;
+  H.phase = 'revele';
+  $('#r-titre').textContent = H.courant.titre;
+  $('#r-artiste').textContent = H.courant.artiste;
+  $('#r-annee').textContent = (H.courant.annee ? H.courant.annee + ' · ' : '') + H.courant.theme + ' · ' + H.courant.niveau;
+  $('#revel').classList.add('on');
+  publier('revel', { titre:H.courant.titre, artiste:H.courant.artiste, annee:H.courant.annee });
+};
+$('#b-rejouer').onclick = () => { $('#audio').currentTime = 0; lire(); };
+$('#b-passer').onclick = suivant;
+$('#b-suivant').onclick = suivant;
+function suivant(){
+  H.i++; H.joues++; $('#compteur').textContent = H.joues + ' morceau' + (H.joues > 1 ? 'x' : '');
+  $('#audio').pause(); chargerMorceau();
+}
+$('#terminer').onclick = terminer;
+function terminer(){
+  clearInterval(H.minuteur); $('#audio').pause();
+  publier('fin', {});
+  const tri = [...H.equipes.values()].sort((a,b) => b.pts - a.pts);
+  const b = $('#podium'); b.innerHTML = '';
+  tri.forEach((eq, i) => {
+    const d = document.createElement('div');
+    d.className = 'ligne' + (i===0 && eq.pts>0 ? ' gagnant' : '');
+    d.innerHTML = '<span class="g"></span><span class="n"></span><span class="sc" style="margin-left:auto;font-weight:800"></span>';
+    d.querySelector('.g').textContent = (i+1) + '.';
+    d.querySelector('.n').textContent = eq.nom;
+    d.querySelector('.sc').textContent = (eq.pts % 1 ? eq.pts.toFixed(1) : eq.pts) + ' pt';
+    b.appendChild(d);
+  });
+  $('#fin-sous').textContent = tri.length && tri[0].pts > 0 ? tri[0].nom + ' remporte la partie !' : 'Personne n\'a marqué, on remet ça ?';
+  $('#fin-stats').textContent = H.joues + ' morceaux joués';
+  afficher('ec-fin');
+}
+
+/* ================= JOUEUR ================= */
+const J = { nom:null, pts:0, salon:null, reco:null, ecoute:false };
+$('#m-rejoindre').onclick = () => afficher('ec-rejoindre');
+$('#retour-accueil').onclick = () => afficher('ec-accueil');
+$('#b-rejoindre').onclick = async () => {
+  const code = ($('#in-code').value || '').trim().toUpperCase();
+  const nom = ($('#in-nom').value || '').trim();
+  const err = $('#erreur-rejoindre');
+  err.textContent = '';
+  if (code.length !== 4) return err.textContent = 'Le code fait 4 lettres.';
+  if (!nom) return err.textContent = 'Mets un nom d\'équipe.';
+  $('#b-rejoindre').textContent = 'Connexion…';
+  try{
+    await connecter(code, 'joueur', surMessageJoueur);
+    J.nom = nom; J.salon = code; J.pts = 0;
+    $('#j-nom').textContent = nom; $('#j-score').textContent = '0 pt';
+    afficher('ec-joueur');
+    publier('hello', { equipe:nom });
+    setInterval(() => publier('ping', { equipe:nom }), 10000);
+  }catch(e){ err.textContent = 'Impossible de rejoindre. Vérifie le code et ta connexion.'; }
+  $('#b-rejoindre').textContent = 'Entrer dans la partie';
+};
+function surMessageJoueur(suffixe, d){
+  if (suffixe === 'etat'){
+    $('#j-phase').textContent = d.phase === 'ecoute' ? 'Écoute et réponds' : (d.phase === 'revele' ? 'Réponse affichée' : 'En attente');
+    $('#j-phase').className = 'badge' + (d.phase === 'ecoute' ? ' on' : '');
+    const moi = (d.scores||[]).find(s => s.nom === J.nom);
+    if (moi){ J.pts = moi.pts; $('#j-score').textContent = (moi.pts % 1 ? moi.pts.toFixed(1) : moi.pts) + ' pt'; }
+    majMicro();
+  } else if (suffixe === 'revel'){
+    $('#j-consigne').textContent = 'Réponse : ' + d.titre + ' — ' + d.artiste;
+  } else if (suffixe === 'res' && d.equipe === J.nom){
+    let v;
+    if (d.pts >= 1) v = '✅ Titre et artiste — 1 point !';
+    else if (d.pts === 0.5) v = (d.titreOk ? '✅ Titre trouvé' : '✅ Artiste trouvé') + ' — ½ point';
+    else v = '❌ Pas reconnu, on retente ?';
+    $('#verdict').textContent = v;
+    $('#transcription').textContent = d.texte ? '« ' + d.texte + ' »' : '';
+  } else if (suffixe === 'fin'){
+    $('#fin-sous').textContent = 'La partie est terminée.';
+    $('#podium').innerHTML = '<div class="ligne gagnant"><span class="n"></span><span class="sc" style="margin-left:auto;font-weight:800"></span></div>';
+    $('#podium .n').textContent = J.nom;
+    $('#podium .sc').textContent = (J.pts % 1 ? J.pts.toFixed(1) : J.pts) + ' pt';
+    $('#fin-stats').textContent = 'Merci d\'avoir joué !';
+    afficher('ec-fin');
+  }
+}
+const RECO_DISPO = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+function majMicro(){
+  const b = $('#micro');
+  b.disabled = !RECO_DISPO;
+  if (!RECO_DISPO){ b.textContent = '🚫'; $('#j-consigne').textContent = 'Ce navigateur ne sait pas écouter : utilise le bouton de validation manuelle en dessous.'; }
+}
+$('#micro').onclick = () => {
+  if (J.ecoute){ try{ J.reco.stop(); }catch(e){} return; }
+  const Cls = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Cls) return;
+  const r = new Cls();
+  r.lang = 'fr-FR'; r.interimResults = false; r.maxAlternatives = 3; r.continuous = false;
+  J.reco = r; J.ecoute = true;
+  $('#micro').classList.add('ecoute');
+  $('#verdict').textContent = ''; $('#transcription').textContent = 'Je t\'écoute…';
+  r.onresult = ev => {
+    let dit = '';
+    for (const alt of ev.results[0]) dit += ' ' + alt.transcript;
+    dit = dit.trim();
+    $('#transcription').textContent = '« ' + dit + ' »';
+    publier('rep', { equipe:J.nom, texte:dit });
+  };
+  r.onerror = ev => { $('#transcription').textContent = 'Micro indisponible (' + ev.error + ')'; };
+  r.onend = () => { J.ecoute = false; $('#micro').classList.remove('ecoute'); };
+  try{ r.start(); }catch(e){ $('#transcription').textContent = 'Impossible de démarrer le micro.'; }
+};
+$('#b-signaler').onclick = () => { publier('rep', { equipe:J.nom, texte:'' }); $('#verdict').textContent = 'Signalé au maître du jeu'; };
+$('#quitter').onclick = () => { if (net.client) net.client.end(true); afficher('ec-accueil'); };
+
+/* ================= SOLO ================= */
+const S = { file:[], i:0, courant:null, restant:0, minuteur:null, joue:false, url:null, joues:0, trouves:0, indiceNiv:0 };
+$('#m-solo').onclick = () => {
+  S.file = melanger(pool().length >= 5 ? pool() : Object.values(DONNEES).flat());
+  S.i = 0; S.joues = 0; S.trouves = 0; S.restant = duree;
+  afficher('ec-solo'); majSMinuteur();
+  if (duree > 0){ clearInterval(S.minuteur); S.minuteur = setInterval(() => { S.restant--; majSMinuteur(); if (S.restant <= 0) finSolo(); }, 1000); }
+  chargerSolo();
+};
+function majSMinuteur(){
+  const m = $('#s-minuteur');
+  if (duree === 0){ m.textContent = '∞'; m.className = 'minuteur'; return; }
+  m.textContent = mmss(S.restant);
+  m.className = 'minuteur' + (S.restant <= 60 ? ' fin' : (S.restant <= 300 ? ' bas' : ''));
+}
+async function chargerSolo(){
+  if (S.i >= S.file.length){ S.file = melanger(S.file); S.i = 0; }
+  S.courant = S.file[S.i]; S.indiceNiv = 0;
+  $('#revel').classList.remove('on'); $('#indice').textContent = '';
+  $('#s-etat').textContent = 'Chargement…'; $('#s-play').textContent = '▶'; $('#barre i').style.width = '0%';
+  S.url = await extrait(S.courant);
+  $('#s-etat').textContent = S.url ? 'Appuie pour lancer l\'extrait' : 'Extrait indisponible';
+}
+function lireSolo(){
+  const a = $('#audio');
+  if (!S.url) return;
+  if (a.src !== S.url) a.src = S.url;
+  a.currentTime = 0;
+  a.play().then(() => { S.joue = true; $('#s-play').textContent = '❚❚'; $('#s-etat').textContent = 'Extrait en cours…'; }).catch(()=>{});
+}
+$('#s-play').onclick = () => {
+  const a = $('#audio');
+  if (!S.url) return;
+  if (S.joue){ a.pause(); S.joue = false; $('#s-play').textContent = '▶'; }
+  else if (a.currentTime > 0 && !a.ended){ a.play(); S.joue = true; $('#s-play').textContent = '❚❚'; }
+  else lireSolo();
+};
+$('#s-reveler').onclick = () => {
+  if (!S.courant) return;
+  S.trouves++;
+  $('#s-titre').textContent = S.courant.titre;
+  $('#s-artiste').textContent = S.courant.artiste;
+  $('#s-annee').textContent = (S.courant.annee ? S.courant.annee + ' · ' : '') + S.courant.theme;
+  $('#revel').classList.add('on');
+};
+$('#s-indice').onclick = () => {
+  if (!S.courant) return;
+  S.indiceNiv++;
+  const mots = S.courant.titre.split(/\s+/).filter(Boolean);
+  const masque = mots.map(m => m[0].toUpperCase() + '·'.repeat(Math.max(1, m.length-1))).join(' ');
+  const l = ['Année : ' + (S.courant.annee || '?'), 'Titre : ' + masque,
+             'Artiste : ' + S.courant.artiste[0] + '·'.repeat(Math.max(1, S.courant.artiste.length-1))];
+  $('#indice').textContent = l[Math.min(S.indiceNiv-1, l.length-1)];
+};
+$('#s-rejouer').onclick = () => { $('#audio').currentTime = 0; lireSolo(); };
+$('#s-passer').onclick = suivantSolo;
+$('#s-suivant').onclick = suivantSolo;
+function suivantSolo(){
+  S.i++; S.joues++; $('#s-compteur').textContent = S.joues + ' morceau' + (S.joues>1?'x':'');
+  $('#audio').pause(); chargerSolo();
+}
+$('#s-terminer').onclick = finSolo;
+function finSolo(){
+  clearInterval(S.minuteur); $('#audio').pause();
+  $('#fin-sous').textContent = 'Session solo';
+  $('#podium').innerHTML = '';
+  $('#fin-stats').textContent = S.joues + ' morceaux joués · ' + S.trouves + ' réponses affichées';
+  afficher('ec-fin');
+}
+$('#rejouer').onclick = () => afficher('ec-accueil');
+
+/* ================= demarrage ================= */
+const params = new URLSearchParams(location.search);
+if (params.get('salon')){
+  $('#in-code').value = params.get('salon').toUpperCase().slice(0,4);
+  afficher('ec-rejoindre');
+} else {
+  construireThemes();
+}
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
